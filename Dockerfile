@@ -1,15 +1,17 @@
-FROM python:3.12-slim-bullseye
+FROM python:3.12
 
-WORKDIR /app
+ENV PORT=8080
 
-COPY requirements.txt .
-COPY requirements-dev.txt .
+RUN adduser note_api
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip
 
-COPY . .
+WORKDIR /code
 
-EXPOSE 8000
+COPY ./requirements.txt /code/requirements.txt
+RUN pip3 install -r requirements.txt
 
-#CMD ["python", "node_api.py"] 
-CMD redis-server --daemonize yes && python node_api.py
+COPY ./note_api /code/note_api
+
+USER note_api
+CMD ["bash", "-c", "uvicorn note_api.main:app --host 0.0.0.0 --port ${PORT}"]
