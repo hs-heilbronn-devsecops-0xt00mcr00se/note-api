@@ -61,8 +61,8 @@ jobs:
       - name: Auth
         uses: "google-github-actions/auth@v2"
         with:
-          project_id: "hs-heilbronn-devsecops" # Change this
-          workload_identity_provider: "projects/70756149774/locations/global/workloadIdentityPools/github-actions/providers/github-repos" # Change this
+          # project_id: "hs-heilbronn-devsecops"
+          workload_identity_provider: "projects/70756149774/locations/global/workloadIdentityPools/github-actions/providers/github-repos"
           service_account: "hshn-devsecops-service-account@hs-heilbronn-devsecops.iam.gserviceaccount.com"
 
       - name: Deploy
