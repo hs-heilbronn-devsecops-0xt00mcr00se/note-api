@@ -13,7 +13,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.gcp_trace import GcpTraceSpanExporter
+from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 
 app = FastAPI()
 
@@ -22,11 +22,6 @@ my_backend: Optional[Backend] = None
 # Setup OpenTelemetry Tracing
 trace.set_tracer_provider(TracerProvider())
 tracer_provider = trace.get_tracer_provider()
-
-# Configure Google Cloud Trace Exporter
-cloud_trace_exporter = GcpTraceSpanExporter()
-span_processor = BatchSpanProcessor(cloud_trace_exporter)
-tracer_provider.add_span_processor(span_processor)
 
 # Instrument the FastAPI app
 FastAPIInstrumentor.instrument_app(app)
@@ -77,9 +72,6 @@ def update_note(note_id: str,
 @app.post('/notes')
 def create_note(request: CreateNoteRequest,
                 backend: Annotated[Backend, Depends(get_backend)]) -> str:
-    # Custom Span: Track creation of a note
-    tracer = trace.get_tracer(__name__)
-    with tracer.start_as_current_span("create_note_span"):
-        note_id = str(uuid4())
-        backend.set(note_id, request)
+    note_id = str(uuid4())
+    backend.set(note_id, request)
     return note_id
