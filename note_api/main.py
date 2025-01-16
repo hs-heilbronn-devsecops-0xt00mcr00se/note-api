@@ -13,7 +13,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+from opentelemetry.exporter.gcp_trace import GcpTraceSpanExporter
 
 app = FastAPI()
 
@@ -24,7 +24,7 @@ trace.set_tracer_provider(TracerProvider())
 tracer_provider = trace.get_tracer_provider()
 
 # Configure Google Cloud Trace Exporter
-cloud_trace_exporter = CloudTraceSpanExporter()
+cloud_trace_exporter = GcpTraceSpanExporter()
 span_processor = BatchSpanProcessor(cloud_trace_exporter)
 tracer_provider.add_span_processor(span_processor)
 
