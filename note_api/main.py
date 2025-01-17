@@ -9,7 +9,11 @@ from starlette.responses import RedirectResponse
 from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
 from .model import Note, CreateNoteRequest
 
-from opentelemetry import trace, baggage
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
 # from opentelemetry.trace import SpanContext, NonRecordingSpan
 # from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 # from opentelemetry.sdk.trace import TracerProvider
@@ -28,14 +32,19 @@ from opentelemetry import trace, baggage
 #     BatchSpanProcessor(cloud_trace_exporter)
 # )
 # trace.set_tracer_provider(tracer_provider)
+
 tracer = trace.get_tracer(__name__)
 
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
 
-# # Instrument the FastAPI app
-# FastAPIInstrumentor.instrument_app(app)
+# Setup OpenTelemetry Tracing
+trace.set_tracer_provider(TracerProvider())
+tracer_provider = trace.get_tracer_provider()
+
+# Instrument the FastAPI app
+FastAPIInstrumentor.instrument_app(app)
 
 
 def get_backend() -> Backend:
@@ -79,31 +88,61 @@ def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
         return notes
 
 
+# @app.get('/notes/{note_id}')
+# def get_note(note_id: str,
+#              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
+#     return backend.get(note_id)
+
+
 @app.get('/notes/{note_id}')
 def get_note(note_id: str,
              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-    return backend.get(note_id)
+    """Fetch a single note from the backend"""
+    with tracer.start_as_current_span("get_note") as span:
+        span.set_attribute("note.id", note_id)
+        return backend.get(note_id)
+
+
+# @app.put('/notes/{note_id}')
+# def update_note(note_id: str,
+#                 request: CreateNoteRequest,
+#                 backend: Annotated[Backend, Depends(get_backend)]) -> None:
+#     backend.set(note_id, request)
 
 
 @app.put('/notes/{note_id}')
 def update_note(note_id: str,
                 request: CreateNoteRequest,
                 backend: Annotated[Backend, Depends(get_backend)]) -> None:
-    backend.set(note_id, request)
+    """Update an existing note"""
+    with tracer.start_as_current_span("update_note") as span:
+        span.set_attribute("note.id", note_id)
+        backend.set(note_id, request)
+
+
+# @app.post('/notes')
+# def create_note(request: CreateNoteRequest,
+#                 backend: Annotated[Backend, Depends(get_backend)]) -> str:
+#     note_id = str(uuid4())
+#     backend.set(note_id, request)
+#     return note_id
 
 
 @app.post('/notes')
 def create_note(request: CreateNoteRequest,
                 backend: Annotated[Backend, Depends(get_backend)]) -> str:
-    note_id = str(uuid4())
-    backend.set(note_id, request)
-    return note_id
+    """Create a new note"""
+    with tracer.start_as_current_span("create_note") as span:
+        note_id = str(uuid4())
+        span.set_attribute("note.id", note_id)
+        backend.set(note_id, request)
+        return note_id
 
 
-# @app.get("/custom-span")
-# async def custom_span():
-#     tracer = trace.get_tracer(__name__)
-#     with tracer.start_as_current_span("custom-operation"):
-#         # Simulated operation
-#         result = {"message": "Custom span in action!"}
-#         return result
+@app.get("/custom-span")
+async def custom_span():
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("custom-operation"):
+        # Simulated operation
+        result = {"message": "Custom span in action!"}
+        return result
