@@ -48,9 +48,9 @@ def get_backend() -> Backend:
     return my_backend
 
 
-@app.get('/')
-def redirect_to_notes() -> None:
-    return RedirectResponse(url='/notes')
+# @app.get('/')
+# def redirect_to_notes() -> None:
+#     return RedirectResponse(url='/notes')
 
 
 @app.get('/')
