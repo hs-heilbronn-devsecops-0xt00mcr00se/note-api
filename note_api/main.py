@@ -9,9 +9,20 @@ from starlette.responses import RedirectResponse
 from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
 from .model import Note, CreateNoteRequest
 
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
+
+# Setup OpenTelemetry Tracing
+trace.set_tracer_provider(TracerProvider())
+tracer_provider = trace.get_tracer_provider()
+
+# Instrument the FastAPI app
+FastAPIInstrumentor.instrument_app(app)
 
 
 def get_backend() -> Backend:
