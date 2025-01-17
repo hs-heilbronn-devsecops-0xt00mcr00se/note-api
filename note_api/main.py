@@ -63,12 +63,6 @@ def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
     return Notes
 
 
-# @app.get('/notes/{note_id}')
-# def get_note(note_id: str,
-#              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-#     return backend.get(note_id)
-
-
 @app.get('/notes/{note_id}')
 def get_note(note_id: str,
              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
