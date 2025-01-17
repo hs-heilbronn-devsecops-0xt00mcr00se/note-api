@@ -12,20 +12,8 @@ from .model import Note, CreateNoteRequest
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.propagate import set_global_textmap
-from opentelemetry.propagators.cloud_trace_propagator import CloudTraceFormatPropagator
 
-# Initialize tracing and an exporter that can send data to Google Cloud Operations
-tracer_provider = TracerProvider()
-cloud_trace_exporter = CloudTraceSpanExporter()
-tracer_provider.add_span_processor(BatchSpanProcessor(cloud_trace_exporter))
-trace.set_tracer_provider(tracer_provider)
-
-# Use GCP propagator
-set_global_textmap(CloudTraceFormatPropagator())
 
 app = FastAPI()
 
@@ -34,10 +22,10 @@ my_backend: Optional[Backend] = None
 # Setup OpenTelemetry Tracing
 trace.set_tracer_provider(TracerProvider())
 tracer_provider = trace.get_tracer_provider()
+
 # Instrument the FastAPI app
 FastAPIInstrumentor.instrument_app(app)
-# Get tracer
-tracer = trace.get_tracer(__name__)
+
 
 def get_backend() -> Backend:
     global my_backend  # pylint: disable=global-statement
@@ -87,3 +75,12 @@ def create_note(request: CreateNoteRequest,
     note_id = str(uuid4())
     backend.set(note_id, request)
     return note_id
+
+
+@app.get("/custom-span")
+async def custom_span():
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("custom-operation"):
+        # Simulated operation
+        result = {"message": "Custom span in action!"}
+        return result
