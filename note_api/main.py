@@ -63,10 +63,23 @@ def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
     return Notes
 
 
+# @app.get('/notes/{note_id}')
+# def get_note(note_id: str,
+#              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
+#     return backend.get(note_id)
+
+
 @app.get('/notes/{note_id}')
 def get_note(note_id: str,
              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-    return backend.get(note_id)
+    with tracer.start_as_current_span("get_note_span") as span:
+        span.set_attribute("custom.note_id", note_id)
+        span.add_event(f"Fetching note with ID: {note_id}")
+
+        note = backend.get(note_id)
+
+        span.add_event(f"Note with ID {note_id} fetched")
+        return note
 
 
 @app.put('/notes/{note_id}')
