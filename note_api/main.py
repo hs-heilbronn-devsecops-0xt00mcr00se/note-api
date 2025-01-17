@@ -14,25 +14,25 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
 
-# # Setup OpenTelemetry Tracing
-# trace.set_tracer_provider(TracerProvider())
-# tracer_provider = trace.get_tracer_provider()
-
-# # Instrument the FastAPI app
-# FastAPIInstrumentor.instrument_app(app)
-
+# Set up OpenTelemetry tracer provider
 trace.set_tracer_provider(TracerProvider())
-tracer = trace.get_tracer(__name__)
-trace.get_tracer_provider().add_span_processor(
-    BatchSpanProcessor(ConsoleSpanExporter())
-)
 
-FastAPIInstrumentor().instrument_app(app)
+# Google Cloud Trace Exporter
+cloud_trace_exporter = CloudTraceSpanExporter()
+
+# tracer = trace.get_tracer(__name__)
+
+# Add the Cloud Trace exporter to the tracer provider
+trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(cloud_trace_exporter))
+
+# Automatically instrument FastAPI
+FastAPIInstrumentor.instrument_app(app)
 
 
 def get_backend() -> Backend:
