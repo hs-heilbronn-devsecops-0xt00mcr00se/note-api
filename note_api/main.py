@@ -9,15 +9,15 @@ from starlette.responses import RedirectResponse
 from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
 from .model import Note, CreateNoteRequest
 
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+# from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
 
-# Instrument the FastAPI app
-FastAPIInstrumentor.instrument_app(app)
+# # Instrument the FastAPI app
+# FastAPIInstrumentor.instrument_app(app)
 
 
 def get_backend() -> Backend:
