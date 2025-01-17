@@ -10,30 +10,14 @@ from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
 from .model import Note, CreateNoteRequest
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
 
-# # Setup OpenTelemetry Tracing
-# trace.set_tracer_provider(TracerProvider())
-# tracer_provider = trace.get_tracer_provider()
-
-# # Instrument the FastAPI app
-# FastAPIInstrumentor.instrument_app(app)
-
-
-# Setup OpenTelemetry Tracing
-trace.set_tracer_provider(TracerProvider())
-tracer_provider = trace.get_tracer_provider()
 # Instrument the FastAPI app
 FastAPIInstrumentor.instrument_app(app)
-# Get tracer
-tracer = trace.get_tracer(_name_)
 
 
 def get_backend() -> Backend:
@@ -65,10 +49,10 @@ def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
     return Notes
 
 
-# @app.get('/notes/{note_id}')
-# def get_note(note_id: str,
-#              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-#     return backend.get(note_id)
+@app.get('/notes/{note_id}')
+def get_note(note_id: str,
+             backend: Annotated[Backend, Depends(get_backend)]) -> Note:
+    return backend.get(note_id)
 
 
 @app.put('/notes/{note_id}')
@@ -93,16 +77,3 @@ def create_note(request: CreateNoteRequest,
 #         # Simulated operation
 #         result = {"message": "Custom span in action!"}
 #         return result
-
-
-@app.get('/notes/{note_id}')
-def get_note(note_id: str,
-             backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-    with tracer.start_as_current_span("get_note_operation") as span:
-        # Add relevant attributes to the span
-        span.set_attribute("note.id", note_id)
-        
-        note = backend.get(note_id)
-            # Add success attribute
-        span.set_attribute("operation.success", True)
-        return note
