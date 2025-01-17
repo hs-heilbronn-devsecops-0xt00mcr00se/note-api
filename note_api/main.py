@@ -10,24 +10,24 @@ from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
 from .model import Note, CreateNoteRequest
 
 from opentelemetry import trace, baggage
-from opentelemetry.trace import SpanContext, NonRecordingSpan
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+# from opentelemetry.trace import SpanContext, NonRecordingSpan
+# from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+# from opentelemetry.sdk.trace import TracerProvider
+# from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from opentelemetry.propagate import set_global_textmap, inject, extract
-from opentelemetry.propagators.cloud_trace_propagator import (
-    CloudTraceFormatPropagator,
-)
-set_global_textmap(CloudTraceFormatPropagator())
+# from opentelemetry.propagate import set_global_textmap, inject, extract
+# from opentelemetry.propagators.cloud_trace_propagator import (
+#     CloudTraceFormatPropagator,
+# )
+# set_global_textmap(CloudTraceFormatPropagator())
 
 
-tracer_provider = TracerProvider()
-cloud_trace_exporter = CloudTraceSpanExporter()
-tracer_provider.add_span_processor(
-    BatchSpanProcessor(cloud_trace_exporter)
-)
-trace.set_tracer_provider(tracer_provider)
+# tracer_provider = TracerProvider()
+# cloud_trace_exporter = CloudTraceSpanExporter()
+# tracer_provider.add_span_processor(
+#     BatchSpanProcessor(cloud_trace_exporter)
+# )
+# trace.set_tracer_provider(tracer_provider)
 tracer = trace.get_tracer(__name__)
 
 app = FastAPI()
