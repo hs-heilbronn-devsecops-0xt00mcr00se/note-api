@@ -9,31 +9,47 @@ from starlette.responses import RedirectResponse
 from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
 from .model import Note, CreateNoteRequest
 
-from opentelemetry import trace
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+import os
+from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
-from opentelemetry.sdk.trace.export import (
-    SimpleSpanProcessor,
-)
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.trace import OTLPSpanExporter
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.exporter.otlp.metrics import OTLPMetricExporter
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+
+# Setup Resource with custom attributes (e.g., service instance ID)
+resource = Resource.create(attributes={
+    "service.instance.id": f"worker-{os.getpid()}",  # Unique service instance ID based on the worker process ID
+})
+
+# Set up TracerProvider with the resource
+traceProvider = TracerProvider(resource=resource)
+
+# Set up the BatchSpanProcessor with the OTLP exporter
+processor = BatchSpanProcessor(OTLPSpanExporter())
+traceProvider.add_span_processor(processor)
+
+# Set the TracerProvider to OpenTelemetry's global trace provider
+trace.set_tracer_provider(traceProvider)
+
+# Set up the PeriodicExportingMetricReader for metrics with OTLP exporter
+reader = PeriodicExportingMetricReader(OTLPMetricExporter())
+meterProvider = MeterProvider(metric_readers=[reader], resource=resource)
+
+# Set the MeterProvider for metrics collection
+metrics.set_meter_provider(meterProvider)
+
 
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
 
-# Setup OpenTelemetry Tracing
-trace.set_tracer_provider(TracerProvider())
-
-cloud_trace_exporter = CloudTraceSpanExporter(
-    project_id='hs-heilbronn-devsecops',
-)
-trace.get_tracer_provider().add_span_processor(
-    SimpleSpanProcessor(cloud_trace_exporter)
-)
-
-# Instrument the FastAPI app
+# Instrument the FastAPI app for tracing
 FastAPIInstrumentor.instrument_app(app)
-
 
 def get_backend() -> Backend:
     global my_backend  # pylint: disable=global-statement
@@ -80,9 +96,6 @@ def update_note(note_id: str,
 @app.post('/notes')
 def create_note(request: CreateNoteRequest,
                 backend: Annotated[Backend, Depends(get_backend)]) -> str:
-    # Custom Span: Track creation of a note
-    tracer = trace.get_tracer(__name__)
-    with tracer.start_as_current_span("create_note_span"):
-        note_id = str(uuid4())
-        backend.set(note_id, request)
+    note_id = str(uuid4())
+    backend.set(note_id, request)
     return note_id
