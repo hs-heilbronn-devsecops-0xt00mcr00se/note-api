@@ -7,6 +7,7 @@ from typing_extensions import Annotated
 from fastapi import Depends, FastAPI
 from starlette.responses import RedirectResponse
 from .backends import Backend, RedisBackend, MemoryBackend, GCSBackend
+# from note_api.backends import Backend, RedisBackend, MemoryBackend, GCSBackend  # for testing locally
 from .model import Note, CreateNoteRequest
 
 from opentelemetry import trace
@@ -14,25 +15,23 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 
 app = FastAPI()
 
 my_backend: Optional[Backend] = None
 
-# Set up OpenTelemetry tracer provider
+
+# Set up OpenTelemetry tracing
 trace.set_tracer_provider(TracerProvider())
+tracer = trace.get_tracer(__name__)
 
-# Google Cloud Trace Exporter
-cloud_trace_exporter = CloudTraceSpanExporter()
+# Adding a ConsoleSpanExporter to output traces to the console for debugging purpose
+trace.get_tracer_provider().add_span_processor(
+    BatchSpanProcessor(ConsoleSpanExporter())
+)
 
-# tracer = trace.get_tracer(__name__)
-
-# Add the Cloud Trace exporter to the tracer provider
-trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(cloud_trace_exporter))
-
-# Automatically instrument FastAPI
-FastAPIInstrumentor.instrument_app(app)
+# Instrumenting FastAPI for automatic tracing
+FastAPIInstrumentor().instrument_app(app)
 
 
 def get_backend() -> Backend:
@@ -52,6 +51,24 @@ def get_backend() -> Backend:
 @app.get('/')
 def redirect_to_notes() -> None:
     return RedirectResponse(url='/notes')
+
+
+@app.get('/')
+def redirect_to_notes() -> None:
+    # Start a custom span to track the redirection
+    with tracer.start_as_current_span("redirect_to_notes_span") as span:
+        # Optionally, you can set some attributes or events
+        span.set_attribute("custom.redirect", "redirect_to_notes called")
+        span.add_event("Redirecting to /notes")
+
+        # Perform the redirection
+        response = RedirectResponse(url='/notes')
+
+        # Add an event after the redirect is prepared
+        span.add_event("Redirect response prepared")
+
+        # Return the response (this will trigger the redirect)
+        return response
 
 
 @app.get('/notes')
