@@ -48,27 +48,9 @@ def get_backend() -> Backend:
     return my_backend
 
 
-# @app.get('/')
-# def redirect_to_notes() -> None:
-#     return RedirectResponse(url='/notes')
-
-
 @app.get('/')
 def redirect_to_notes() -> None:
-    # Start a custom span to track the redirection
-    with tracer.start_as_current_span("redirect_to_notes_span") as span:
-        # Optionally, you can set some attributes or events
-        span.set_attribute("custom.redirect", "redirect_to_notes called")
-        span.add_event("Redirecting to /notes")
-
-        # Perform the redirection
-        response = RedirectResponse(url='/notes')
-
-        # Add an event after the redirect is prepared
-        span.add_event("Redirect response prepared")
-
-        # Return the response (this will trigger the redirect)
-        return response
+    return RedirectResponse(url='/notes')
 
 
 @app.get('/notes')
