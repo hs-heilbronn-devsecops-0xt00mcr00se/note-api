@@ -9,3 +9,4 @@ opentelemetry-sdk
 opentelemetry-exporter-gcp-trace
 opentelemetry-instrumentation-fastapi
 opentelemetry-propagator-gcp
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
