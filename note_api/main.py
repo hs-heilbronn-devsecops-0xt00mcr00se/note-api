@@ -12,28 +12,6 @@ from .model import Note, CreateNoteRequest
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-# from opentelemetry.trace import SpanContext, NonRecordingSpan
-# from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
-# from opentelemetry.sdk.trace import TracerProvider
-# from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-# from opentelemetry.propagate import set_global_textmap, inject, extract
-# from opentelemetry.propagators.cloud_trace_propagator import (
-#     CloudTraceFormatPropagator,
-# )
-# set_global_textmap(CloudTraceFormatPropagator())
-
-
-# tracer_provider = TracerProvider()
-# cloud_trace_exporter = CloudTraceSpanExporter()
-# tracer_provider.add_span_processor(
-#     BatchSpanProcessor(cloud_trace_exporter)
-# )
-# trace.set_tracer_provider(tracer_provider)
-
-tracer = trace.get_tracer(__name__)
 
 app = FastAPI()
 
@@ -66,79 +44,35 @@ def redirect_to_notes() -> None:
     return RedirectResponse(url='/notes')
 
 
-# @app.get('/notes')
-# def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
-#     keys = backend.keys()
-
-#     Notes = []
-#     for key in keys:
-#         Notes.append(backend.get(key))
-#     return Notes
-
-
 @app.get('/notes')
 def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
-    """Fetch all notes from the backend"""
-    with tracer.start_as_current_span("get_notes") as span:
-        span.set_attribute("backend.type", type(backend).__name__)
-        keys = backend.keys()
-        notes = []
-        for key in keys:
-            with tracer.start_as_current_span("fetch_note_from_backend") as sub_span:
-                sub_span.set_attribute("note.key", key)
-                notes.append(backend.get(key))
-        return notes
+    keys = backend.keys()
 
-
-# @app.get('/notes/{note_id}')
-# def get_note(note_id: str,
-#              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-#     return backend.get(note_id)
+    Notes = []
+    for key in keys:
+        Notes.append(backend.get(key))
+    return Notes
 
 
 @app.get('/notes/{note_id}')
 def get_note(note_id: str,
              backend: Annotated[Backend, Depends(get_backend)]) -> Note:
-    """Fetch a single note from the backend"""
-    with tracer.start_as_current_span("get_note") as span:
-        span.set_attribute("note.id", note_id)
-        return backend.get(note_id)
-
-
-# @app.put('/notes/{note_id}')
-# def update_note(note_id: str,
-#                 request: CreateNoteRequest,
-#                 backend: Annotated[Backend, Depends(get_backend)]) -> None:
-#     backend.set(note_id, request)
+    return backend.get(note_id)
 
 
 @app.put('/notes/{note_id}')
 def update_note(note_id: str,
                 request: CreateNoteRequest,
                 backend: Annotated[Backend, Depends(get_backend)]) -> None:
-    """Update an existing note"""
-    with tracer.start_as_current_span("update_note") as span:
-        span.set_attribute("note.id", note_id)
-        backend.set(note_id, request)
-
-
-# @app.post('/notes')
-# def create_note(request: CreateNoteRequest,
-#                 backend: Annotated[Backend, Depends(get_backend)]) -> str:
-#     note_id = str(uuid4())
-#     backend.set(note_id, request)
-#     return note_id
+    backend.set(note_id, request)
 
 
 @app.post('/notes')
 def create_note(request: CreateNoteRequest,
                 backend: Annotated[Backend, Depends(get_backend)]) -> str:
-    """Create a new note"""
-    with tracer.start_as_current_span("create_note") as span:
-        note_id = str(uuid4())
-        span.set_attribute("note.id", note_id)
-        backend.set(note_id, request)
-        return note_id
+    note_id = str(uuid4())
+    backend.set(note_id, request)
+    return note_id
 
 
 @app.get("/custom-span")
