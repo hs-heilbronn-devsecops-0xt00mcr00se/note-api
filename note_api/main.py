@@ -84,7 +84,9 @@ def get_notes(backend: Annotated[Backend, Depends(get_backend)]) -> List[Note]:
         keys = backend.keys()
         notes = []
         for key in keys:
-            notes.append(backend.get(key))
+            with tracer.start_as_current_span("fetch_note_from_backend") as sub_span:
+                sub_span.set_attribute("note.key", key)
+                notes.append(backend.get(key))
         return notes
 
 
